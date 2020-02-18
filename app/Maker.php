@@ -2,40 +2,61 @@
 
 namespace App;
 
+
 use Illuminate\Database\Eloquent\Model;
 
 class Maker extends Model
 {
     public function register($email, $password) {
-        if (!$this->hasRegistered($email)) {
-            $pattern = '/^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,})$/';
-            if (!preg_match($pattern,$email)) {
-                return json_encode(array('result' => 0, 'message' => 'illegal'));
-            }
-            else if (18 < strlen($password)) {
-                return json_encode(array('result' => 0, 'message' => 'too long'));
-            }
-            else if (strlen($password) < 6) {
-                return json_encode(array('result' => 0, 'message' => 'too short'));
-            }
-            else {
+        $pattern = '/^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,})$/';
+        if (!preg_match($pattern,$email)) {
+            $data = array('errcode' => 1, 'session' => null, 'errmsg' => 'illegal email address');
+        }
+        else if (18 < strlen($password)) {
+            $data = array('errcode' => 1, 'session' => null, 'errmsg' => 'too long password');
+        }
+        else if (strlen($password) < 6) {
+            $data = array('errcode' => 1, 'session' => null, 'errmsg' => 'too short password');
+        }
+        else {
+            if (!$this->hasRegistered($email)) {
                 $this->insert(
                     [
                     'email' => $email, 
                     'password' => $password,
-                    'name' => '',
-                    'introduction' => ''
                     ]
                 );
-                $session = md5(uniqid(microtime(true).$email.'asuka'.$password,true));
-                session([$session => $this->getId($email)->id]);
-                return json_encode(array('result' => 1, 'session' => $session));
+                $session = $this->createSession($email, $password);
+                $data = array('errcode' => 0, 'session' => $session, 'errmsg' => null);
             }
-            
+            else {
+                $data = array('errcode' => 1, 'session' => null, 'errmsg' => 'been registered');
+            }
+        }
+
+        return $data;
+    }
+
+    // return session
+    public function verify($email, $password) {
+        $id = $this->where([
+            ['email', '=', $email],
+            ['password', '=', $password]
+        ])->value('id');
+        if ($id) {
+            $session =  $this->createSession($email, $password);
+            $data = array('errcode' => 0, 'session' => $session, 'errmsg' => null);
         }
         else {
-            return json_encode(array('result' => 0, 'session' => 'hasRegistered'));
+            $data = array('errcode' => 1, 'errmsg' => 'email or password incorrect');
         }
+        return $data;
+    }
+
+    public function createSession($email, $password) {
+        $session = md5(uniqid(microtime(true).$email.'asuka'.$password,true));
+        session([$session => $this->getIdByEmail($email)]);
+        return $session;
     }
 
     public function hasRegistered($email) {
@@ -43,10 +64,11 @@ class Maker extends Model
     }
 
     public function getIdByEmail($email) {
-        return $this->where('email', $email)->first();
+        return $this->where('email', $email)->value('id');
     }
 
     public function getIdBySession($session) {
         return session($session, 'default');
     }
+
 }
