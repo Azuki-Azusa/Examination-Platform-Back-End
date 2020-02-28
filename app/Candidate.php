@@ -5,6 +5,9 @@ namespace App;
 use App\Maker;
 use App\Group;
 use App\Exam;
+use App\Question;
+use App\Answer;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 
 class Candidate extends Model
@@ -130,7 +133,7 @@ class Candidate extends Model
 
         $group_id = $this->find($id)->group_id;
         $exam = new Exam();
-        $exams = $exam->getExamsByGroupId($group_id);
+        $exams = $exam->getExamsInProgressByGroupId($group_id);
 
         $data = array();
         foreach($exams as $exam) {
@@ -145,6 +148,84 @@ class Candidate extends Model
         $data = array('errcode' => 0, 'errmsg' => null, 'exams' => $data);
         return $data;
     }
+
+    public function getQuestions($exam_id, $session)
+    {
+        $id = $this->getCandidateIdBySession($session);
+        $group_id = $this->find($id)->group_id;
+
+        $exam = new Exam();
+        $exam = $exam->find($exam_id);
+        if (!$exam || $exam->group_id != $group_id) {
+            $data = array('errcode' => 1, 'errmsg' => 'Illegal exam_id.');
+            return $data;
+        }
+
+        $question = new Question();
+        $paper_id = $exam->paper_id;
+
+        $qs = $question->getQuestionsByPaperId($paper_id);
+        $questions = array();
+        foreach ($qs as $question) {
+            $object = array(
+                'question' => array(
+                    'id' => $question['id'],
+                    'question' => $question['question'],
+                    'type' => $question['type'],
+                    'num' => $question['num']
+                )
+            );
+            array_push($questions, $object);
+        }
+
+        $endTime = substr($exam->endTime,0, 16);
+        $name = $exam->name;
+
+        $data = array('errcode' => 0, 'errmsg' => null, 'questions' => $questions, 'endTime' => $endTime, 'name' => $name);
+        return $data;
+    }
+
+    public function getCandidateInfo($exam_id, $session)
+    {
+        $maker_id = $this->getIdBySession($session);
+        $examObj = new Exam();
+        // 不存在该Exam
+        if (!$examObj->own($maker_id, $exam_id)) {
+            $data = array('errcode' => 1, 'errmsg' => 'Have no this exam.');
+            return $data;
+        }
+
+        $exam = $examObj->find($exam_id);
+        if ($examObj->getStateOfExam($exam) == 0) {
+            $data = array('errcode' => 1, 'errmsg' => 'Exam state error.');
+            return $data;
+        }
+
+        $candidates = $this->where("group_id", $exam->group_id)->get();
+        $questionNum = DB::table('questions')->where('paper_id', $exam->paper_id)->count();
+        $data = array();
+        foreach ($candidates as $candidate) {
+            $answerNum = DB::table('answers')->where([
+                ['exam_id', '=', $exam_id],
+                ['candidate_id', '=', $candidate->id]
+            ])->count();
+            $state = ((string)$answerNum).'/'.((string)$questionNum);
+            $points = DB::table('records')->where([
+                ['exam_id', '=', $exam_id],
+                ['candidate_id', '=', $candidate->id]
+            ])->first()->points;
+            $object = array(
+                'id' => $candidate->id,
+                'name' => $candidate->name,
+                'state' => $state,
+                'points' => $points
+            );
+            array_push($data, $object);
+        }
+        $data = $data = array('errcode' => 0, 'errmsg' => null, 'candidates' => $data);
+        return $data;
+    }
+
 
     public function getIdBySession($session)
     {

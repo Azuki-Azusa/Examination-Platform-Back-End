@@ -43,7 +43,7 @@ class Group extends Model
     {
         $maker_id = $this->getIdBySession($session);
         $data = $this->getGroupsByMakerId($maker_id);
-        $data = array('errcode' => 0, 'errmsg' => null, 'group' => $data);
+        $data = array('errcode' => 0, 'errmsg' => null, 'groups' => $data);
         return $data;
     }
 

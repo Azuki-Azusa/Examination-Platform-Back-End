@@ -24,6 +24,7 @@ Route::prefix('maker')->group(function () {
     Route::get('/getexam/{id}', 'ExamController@getExam')->middleware('checkMakerCookie');
     Route::post('/editexam', 'ExamController@editExam')->middleware('checkMakerCookie');
     Route::post('/remove', 'ExamController@removeExam')->middleware('checkMakerCookie');
+    Route::post('/finish', 'ExamController@finishExam')->middleware('checkMakerCookie');
 
     Route::post('/createpaper', 'PaperController@createPaper')->middleware('checkMakerCookie');
     Route::get('/papers', 'PaperController@getPapers')->middleware('checkMakerCookie');
@@ -40,6 +41,11 @@ Route::prefix('maker')->group(function () {
 
     Route::post('/addcandidate', 'CandidateController@addCandidate')->middleware('checkMakerCookie');
     Route::post('/removecandidate', 'CandidateController@removeCandidate')->middleware('checkMakerCookie');
+    Route::get('/inprogress/candidates/{exam_id}', 'CandidateController@getCandidateInfo')->middleware('checkMakerCookie');
+
+    Route::post('/correctall', 'AnswerController@correctAll')->middleware('checkMakerCookie');
+    Route::get('/randomanswer/{question_id}/{exam_id}', 'AnswerController@getRandomAnswer')->middleware('checkMakerCookie');
+    Route::post('/correct', 'AnswerController@correct')->middleware('checkMakerCookie');
 
 });
 
@@ -47,6 +53,9 @@ Route::prefix('candidate')->group(function () {
     Route::get('/login/{candidate_id}/{candidate_pw}', 'CandidateController@login');
     Route::get('/getinfo', 'CandidateController@getInfo')->middleware('checkCandidateCookie');
     Route::get('/getexam', 'CandidateController@getExam')->middleware('checkCandidateCookie');
+    Route::get('/getquestions/{exam_id}', 'CandidateController@getQuestions')->middleware('checkCandidateCookie');
+
+    Route::post('/commit', 'AnswerController@commit')->middleware('checkCandidateCookie');
 });
 
 Route::get('/{session}', 'MakerController@getID');

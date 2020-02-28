@@ -13,14 +13,27 @@ class MakerController extends Controller
         $password = $request->input('password');
         $maker = new Maker();
         $data = $maker->register($email, $password);
-        return $this->req($data);
+        if ($data['errcode'] == 0) {
+            $cookie = $data['session'];
+            return response($this->req($data))->cookie('sessionMaker', $cookie);
+        }
+        else {
+            return $this->req($data);
+        }
     }
 
     // maker login
     public function login($email, $password) {
         $maker = new Maker();
         $data = $maker->verify($email, $password);
-        return $this->req($data);
+        $cookie = $data['session'];
+        if ($data['errcode'] == 0) {
+            $cookie = $data['session'];
+            return response($this->req($data))->cookie('sessionMaker', $cookie);
+        }
+        else {
+            return $this->req($data);
+        }
     }
 
     // 路由存在

@@ -32,7 +32,13 @@ class CandidateController extends Controller
     {
         $candidate = new Candidate();
         $data = $candidate->login($candidate_id, $candidate_pw);
-        return $this->req($data);
+        if ($data['errcode'] == 0) {
+            $cookie = $data['session'];
+            return response($this->req($data))->cookie('sessionCandidate', $cookie);
+        }
+        else {
+            return $this->req($data);
+        }
     }
 
     public function getInfo(Request $request)
@@ -48,6 +54,22 @@ class CandidateController extends Controller
         $cookie = $this->getCookie2($request);
         $candidate = new Candidate();
         $data = $candidate->getExam($cookie);
+        return $this->req($data);
+    }
+
+    public function getQuestions(Request $request, $exam_id)
+    {
+        $cookie = $this->getCookie2($request);
+        $candidate = new Candidate();
+        $data = $candidate->getQuestions($exam_id, $cookie);
+        return $this->req($data);
+    }
+
+    public function getCandidateInfo(Request $request, $exam_id)
+    {
+        $cookie = $this->getCookie($request);
+        $candidate = new Candidate();
+        $data = $candidate->getCandidateInfo($exam_id, $cookie);
         return $this->req($data);
     }
 }

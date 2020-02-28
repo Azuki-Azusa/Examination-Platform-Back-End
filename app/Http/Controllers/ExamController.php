@@ -96,4 +96,13 @@ class ExamController extends Controller
         return $this->req($data);
 
     }
+
+    public function finishExam(Request $request)
+    {
+        $cookie = $this->getCookie($request);
+        $exam_id = $request->exam_id;
+        $exam = new Exam();
+        $data = $exam->finishExam($exam_id, $cookie);
+        return $this->req($data);
+    }
 }

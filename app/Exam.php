@@ -5,6 +5,7 @@ namespace App;
 use App\Maker;
 use App\Group;
 use App\Paper;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 
 class Exam extends Model
@@ -254,6 +255,47 @@ class Exam extends Model
         $data = array('errcode' => 0, 'errmsg' => '移除成功.');
         return $data;
 
+    }
+
+    public function finishExam($exam_id, $session)
+    {
+        $maker_id = $this->getIdBySession($session);
+
+        // 不存在该Exam
+        if (!$this->own($maker_id, $exam_id)) {
+            $data = array('errcode' => 1, 'errmsg' => 'Have no this exam.');
+            return $data;
+        }
+
+        // Exam状态有误
+        $exam = $this->find($exam_id);
+        if ($this->getStateOfExam($exam) != 2) {
+            $data = array('errcode' => 1, 'errmsg' => 'Exam state error.');
+            return $data;
+        }
+        if ($exam->state == 2) {
+            $data = array('errcode' => 1, 'errmsg' => 'Exam state error.');
+            return $data;
+        }
+        // 创建records
+        $candidates = DB::table('candidates')->where("group_id", $exam->group_id)->get();
+        foreach($candidates as $candidate) {
+            $answers = DB::table('answers')->where("candidate_id", $candidate->id)->get();
+            $points = 0;
+            foreach($answers as $answer) {
+                $points += $answer->points;
+            }
+            DB::table('records')->insert([
+                'candidate_id' => $candidate->id,
+                'exam_id' => $exam_id,
+                'points' => $points
+            ]);
+        }
+        $exam->state = 2;
+        $exam->save();
+        
+        $data = array('errcode' => 0, 'errmsg' => '结束成功.');
+        return $data;
     }
 
     public function getStateOfExam($exam) {
